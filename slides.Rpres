@@ -1,0 +1,149 @@
+Exploring Bias In Yelp Data Based On Location of Business and Reviewer
+========================================================
+author: Stephen Nekolaichuk 
+date: November 22, 2015
+width: 1280
+height: 960
+
+Pro-USA bias in yelp.com reviews?
+========================================================
+- Generally assumed that people believe country they live in to be superior to other countries
+- Particularily assumed to be true of Americans
+- Should be demonstrable through comparison of star ratings (1-5 scale) in yelp.com reviews based on business and reviewer location
+- Analysis of 1.6M reviews spanning 61K businesses in four (4) countries
+- Understanding bias in yelp.com reviews should make reviews more comparable and usable
+- Could provide evidence for or against USA bias.
+```{r chunk1, eval=TRUE, echo=FALSE, include=FALSE}
+# This code chunk ensures working directory is set correctly, loads required 
+# libraries and then reads in the data set formatted for examination.  
+# The data loaded is a combination of the business and the review files.
+### Set working directory
+
+setwd("~/Data Science - Capstone Project")
+
+### Load required libraries
+
+library(knitr)
+library(plyr)
+### library(jsonlite)
+library(reshape)
+library(ggplot2)
+library(RColorBrewer)
+library(lattice)
+
+###  Load the reviews (combined) data frame from a file
+load("reviews.RDA")
+```
+
+The data from yelp.com
+========================================================
+```{r plot1, eval=TRUE, echo=FALSE}
+###
+###  What does the data look like?
+###
+
+###
+###  Set up 2 up
+###
+
+### par(mfrow=c(1,2))
+par(mar=c(4,4,4,4))
+par(cex.axis = 0.9)
+### par(cex.main = 1)
+### par(cex.lab = 0.8)
+
+### Horizontal Barplot showing distribution of reviews by country
+
+temp <- count(reviews, c("country"))
+temp <- temp[order(temp$freq), ]
+barplot(temp$freq / 1000,
+        names.arg = temp$country,
+        xlab = "Reviews (,000s)",
+        col = c("yellow", "orange","red","blue"),
+        horiz = TRUE,
+        xlim = c(0, 1800),
+        las = 1,
+        main = "All Sample Reviews by Country Where Business Resides")
+j <- .8
+for (i in 1:dim(temp)[1]) {
+        tt <- as.character(format(temp[i,]$freq / 1000, digits = .1))
+        text(temp[i, ]$freq /1000 + 110, j, tt)
+        j <- j + 1.2
+}
+```
+***
+```{r plot2, eval=TRUE, echo=FALSE}
+###
+###  What does the data look like?
+###
+
+###
+###  Set up 2 up
+###
+
+### par(mfrow=c(1,2))
+par(mar=c(4,4,4,4))
+par(cex.axis = 0.9)
+### par(cex.main = 1)
+### par(cex.lab = 0.8)
+
+### Barplot showing distribution of all reviews
+
+temp <- count(reviews$review_stars)
+barplot(temp$freq / 1000,
+        names.arg = temp$x,
+       xlab = "Stars", 
+       ylab = "Reviews (,000s)",
+       col = c("red", "orange", "yellow", "greenyellow", "darkgreen"),
+       ylim = c(0,700),
+       main = "All Sample Reviews by Stars Awarded")
+
+j <- .8
+for (i in 1:dim(temp)[1]) {
+        tt <- as.character(format(temp[i,]$freq / 1000, digits = .1))
+        text(j,temp[i, ]$freq /1000 + 70, tt)
+        j <- j + 1.2
+}
+
+abline(v = mean(reviews$review_stars), col = "blue", lwd = 2)
+tt <- as.character(format(mean(reviews$review_stars), digits = .1, nsmall = 2))
+tt <- paste("Mean: ", tt)
+text(mean(reviews$review_stars) - 1, 650, tt, col = "blue")
+```
+ 
+Approach
+========================================================
+1. Analyze the entire collective population
+    - Focus on stars assigned and location of businesses
+    - Verify accuracy of mean stars awarded
+    - Examine distribution of stars awarded
+    - Determine bias
+2. Extract reviews done by USA "home country" reviewers
+    - Approximately 26K reviews
+3. Analyze the USA "home country" data
+    - Mirror analysis of overall population
+4. Compare analyses.
+
+Conclusions
+========================================================
+- Germany results skewed by limited number of "home country" reviews
+- There is USA "home country" bias but it is against USA based businesses
+    - USA based businesses receive average of 3.72 stars
+    - Non-USA based business receive average of 3.90 stars
+    - USA based businesses receive 44.6% less "5 star ratings"
+    - Significant impact over several million reviews.
+- There is less bias in overall population
+    - Mean USA stars higher than ratings by "home country" reviewers
+    - Mean non-USA stars lower than ratings by "home country" reviewers
+
+
+Mean Stars Assigned by Home Country
+```{r finaltable, eval=TRUE, echo=FALSE, fig.align="center"}
+# Output the table
+ttt <- aggregate(review_stars ~ max_country + country, 
+                 reviews[reviews$single_country == "FALSE", ], mean)
+ttt <- cast(ttt, max_country ~ country, value = "review_stars")
+names(ttt)[1] <- c("Home Country")
+
+kable(ttt)
+```
